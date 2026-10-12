@@ -16,24 +16,8 @@ import { RoadmapModal } from '@/components/RoadmapModal';
 import { ClaudeGuideModal } from '@/components/ClaudeGuideModal';
 import { detectAnimationDuration } from '@/lib/duration-detector';
 import { detectHtmlDimensions } from '@/lib/dimension-detector';
-import { JobStatus } from '@/lib/types';
-
-interface RenderProgressData {
-  id: string;
-  status: JobStatus;
-  progress: number;
-  stepMessage: string;
-  fileSizeBytes?: number;
-  error?: string;
-  settings?: {
-    width: number;
-    height: number;
-    fps: number;
-    duration: number;
-    selector?: string;
-    sectionLabel?: string;
-  };
-}
+import { recordInBrowser } from '@/lib/browser-recorder';
+import { RenderProgressData } from '@/components/RenderModal';
 
 export default function HomePage() {
   const [htmlContent, setHtmlContent] = useState<string>('');
@@ -108,13 +92,109 @@ export default function HomePage() {
     if (file) processUploadedFile(file);
   };
 
-  // Start Render Job
+  const [engineMode, setEngineMode] = useState<'browser' | 'server'>('browser');
+
+  // Start Render Job (Dispatches to Browser Engine or Cloud Server Engine)
   const handleStartRender = async () => {
     if (!htmlContent.trim()) {
       alert('Please provide or upload HTML code first.');
       return;
     }
 
+    if (engineMode === 'browser') {
+      await handleBrowserRender();
+    } else {
+      await handleServerRender();
+    }
+  };
+
+  // 1. In-Browser Direct GPU Recording (Zero server load, 100% free & unlimited)
+  const handleBrowserRender = async () => {
+    const jobId = 'browser-' + Math.random().toString(36).substring(2, 9);
+    setActiveJob({
+      id: jobId,
+      status: 'launching',
+      progress: 10,
+      stepMessage: 'Select your tab in the browser dialog to start recording...',
+      engine: 'browser',
+      settings: {
+        width,
+        height,
+        fps,
+        duration,
+      },
+    });
+    setIsRenderModalOpen(true);
+    setIsSubmitting(true);
+
+    try {
+      const previewEl = document.getElementById('motion-preview-container');
+      const result = await recordInBrowser({
+        duration,
+        fps,
+        html: htmlContent,
+        previewElement: previewEl,
+        onProgress: (progress, stepMessage) => {
+          setActiveJob((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  progress,
+                  stepMessage,
+                  status: progress >= 100 ? 'completed' : progress > 85 ? 'encoding' : 'capturing',
+                }
+              : null
+          );
+        },
+      });
+
+      setActiveJob({
+        id: jobId,
+        status: 'completed',
+        progress: 100,
+        stepMessage: result.hasSubtitles
+          ? `Ready! Video & Subtitles (${result.subtitleCuesCount} cues) rendered successfully in browser.`
+          : 'Ready! Video rendered successfully in your browser.',
+        blobUrl: result.blobUrl,
+        srtBlobUrl: result.srtBlobUrl,
+        fileSizeBytes: result.fileSizeBytes,
+        hasSubtitles: result.hasSubtitles,
+        subtitleCuesCount: result.subtitleCuesCount,
+        engine: 'browser',
+        settings: {
+          width,
+          height,
+          fps,
+          duration,
+        },
+      });
+    } catch (err: unknown) {
+      const errMsg = (err as Error).message || String(err);
+      if (errMsg.includes('cancelled')) {
+        setIsRenderModalOpen(false);
+      } else {
+        setActiveJob({
+          id: jobId,
+          status: 'failed',
+          progress: 100,
+          stepMessage: 'In-browser render failed',
+          error: errMsg,
+          engine: 'browser',
+          settings: {
+            width,
+            height,
+            fps,
+            duration,
+          },
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 2. Cloud Server Engine (Playwright Headless + FFmpeg for VPS / Dedicated Server)
+  const handleServerRender = async () => {
     try {
       setIsSubmitting(true);
       const res = await fetch('/api/render', {
@@ -143,7 +223,8 @@ export default function HomePage() {
         id: jobId,
         status: 'preparing',
         progress: 10,
-        stepMessage: 'Launching Chromium sandbox...',
+        stepMessage: 'Launching Chromium sandbox on Cloud Server...',
+        engine: 'server',
         settings: {
           width,
           height,
@@ -158,11 +239,11 @@ export default function HomePage() {
       pollJobStatus(jobId);
     } catch (err) {
       setIsSubmitting(false);
-      alert('Render initiation failed: ' + (err as Error).message);
+      alert('Cloud server render failed: ' + (err as Error).message);
     }
   };
 
-  // Poll Job Status
+  // Poll Job Status for Cloud Server Engine
   const pollJobStatus = (jobId: string) => {
     const interval = setInterval(async () => {
       try {
@@ -170,7 +251,7 @@ export default function HomePage() {
         if (!res.ok) return;
 
         const data: RenderProgressData = await res.json();
-        setActiveJob(data);
+        setActiveJob({ ...data, engine: 'server' });
 
         if (data.status === 'completed' || data.status === 'failed') {
           clearInterval(interval);
@@ -454,15 +535,62 @@ export default function HomePage() {
                 </div>
               )}
 
+              {/* Engine Mode Selector */}
+              <div className="pt-2 border-t border-zinc-100">
+                <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 border border-zinc-200 text-xs">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-zinc-900">Engine:</span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${
+                        engineMode === 'browser'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      }`}>
+                        {engineMode === 'browser' ? '⚡ In-Browser (Free & Unlimited)' : '☁️ Cloud Server (VPS)'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-zinc-500 block mt-0.5">
+                      {engineMode === 'browser'
+                        ? 'Zero server load • GPU accelerated • No crash'
+                        : 'Headless Playwright + FFmpeg on VPS'}
+                    </span>
+                  </div>
+                  <div className="flex bg-zinc-200/80 p-0.5 rounded-md text-xs font-mono ml-2 shrink-0">
+                    <button
+                      onClick={() => setEngineMode('browser')}
+                      className={`px-2.5 py-0.5 rounded text-[11px] transition ${
+                        engineMode === 'browser'
+                          ? 'bg-white text-zinc-950 font-semibold shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      Browser
+                    </button>
+                    <button
+                      onClick={() => setEngineMode('server')}
+                      className={`px-2.5 py-0.5 rounded text-[11px] transition ${
+                        engineMode === 'server'
+                          ? 'bg-white text-zinc-950 font-semibold shadow-xs'
+                          : 'text-zinc-500 hover:text-zinc-800'
+                      }`}
+                    >
+                      Cloud
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Export Button */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <button
                   onClick={handleStartRender}
                   disabled={isSubmitting}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-zinc-950 hover:bg-black text-white font-medium text-xs shadow-xs hover:shadow active:scale-[0.99] transition disabled:opacity-50"
                 >
                   <Film className="w-3.5 h-3.5" />
-                  <span>Export Video ({duration}s @ {fps}fps)</span>
+                  <span>
+                    {engineMode === 'browser' ? 'Record Motion Video' : 'Render Motion MP4'} ({duration}s @ {fps}fps)
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>

@@ -90,7 +90,7 @@ export function PreviewFrame({
 
       {/* Frame Canvas: 100% natural, as uploaded by user */}
       <div className="flex-1 min-h-[520px] p-0 transition-colors overflow-hidden flex flex-col bg-[#0f0f11]">
-        <div className="w-full flex-1 relative bg-black flex items-center justify-center">
+        <div id="motion-preview-container" className="w-full flex-1 relative bg-black flex items-center justify-center">
           {html && html.trim() ? (
             <iframe
               ref={iframeRef}

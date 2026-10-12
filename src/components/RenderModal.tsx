@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { JobStatus } from '@/lib/types';
 
-interface RenderProgressData {
+export interface RenderProgressData {
   id: string;
   status: JobStatus;
   progress: number;
@@ -23,6 +23,9 @@ interface RenderProgressData {
   hasSubtitles?: boolean;
   subtitleCuesCount?: number;
   error?: string;
+  blobUrl?: string;
+  srtBlobUrl?: string;
+  engine?: 'browser' | 'server';
   settings?: {
     width: number;
     height: number;
@@ -47,10 +50,10 @@ export function RenderModal({ isOpen, onClose, jobData, onRetry }: RenderModalPr
 
   const isCompleted = jobData.status === 'completed';
   const isFailed = jobData.status === 'failed';
-  const downloadUrl = `/api/render/download?id=${jobData.id}`;
-  const streamUrl = `/api/render/download?id=${jobData.id}&stream=true`;
-
-  const srtDownloadUrl = `/api/render/download?id=${jobData.id}&format=srt`;
+  const isBrowserEngine = jobData.engine === 'browser' || Boolean(jobData.blobUrl);
+  const downloadUrl = jobData.blobUrl || `/api/render/download?id=${jobData.id}`;
+  const streamUrl = jobData.blobUrl || `/api/render/download?id=${jobData.id}&stream=true`;
+  const srtDownloadUrl = jobData.srtBlobUrl || `/api/render/download?id=${jobData.id}&format=srt`;
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'N/A';
@@ -229,11 +232,11 @@ export function RenderModal({ isOpen, onClose, jobData, onRetry }: RenderModalPr
                 <div className="flex items-center gap-2">
                   <a
                     href={downloadUrl}
-                    download={`htmlmotion-${jobData.id.slice(0, 8)}.mp4`}
+                    download={`htmlmotion-${jobData.id.slice(0, 8)}.${isBrowserEngine ? 'webm' : 'mp4'}`}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-zinc-950 hover:bg-black text-white font-medium text-xs shadow-xs transition"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Download MP4
+                    Download {isBrowserEngine ? 'Video' : 'MP4'}
                   </a>
 
                   {jobData.hasSubtitles && (
