@@ -46,7 +46,7 @@ export default function HomePage() {
   const [durationMode, setDurationMode] = useState<'auto' | 'manual'>('auto');
   const [detectedDuration, setDetectedDuration] = useState<number>(8);
   const [detectedRatio, setDetectedRatio] = useState<string>('Native HTML');
-  const [fps, setFps] = useState<number>(60);
+  const [fps, setFps] = useState<number>(30);
   const [delay, setDelay] = useState<number>(600);
   const [backgroundColor, setBackgroundColor] = useState<string>('transparent');
   const [crf, setCrf] = useState<number>(18);

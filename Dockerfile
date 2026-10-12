@@ -14,8 +14,8 @@ ENV PORT=3000
 COPY package.json package-lock.json* ./
 RUN npm install --include=dev
 
-# Install Playwright Chromium browser binary
-RUN npx playwright install chromium
+# Install Playwright Chromium browser binary with all system dependencies
+RUN npx playwright install --with-deps chromium
 
 # Copy application source code
 COPY . .
@@ -25,6 +25,7 @@ RUN npm run build
 
 # Switch to production environment for runtime
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=256"
 
 # Create temp renders directory with appropriate permissions
 RUN mkdir -p .temp_renders
@@ -32,5 +33,5 @@ RUN mkdir -p .temp_renders
 EXPOSE 3000
 
 # Launch Next.js production server
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
 

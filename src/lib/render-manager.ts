@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { pathToFileURL } from 'url';
 import { chromium, Browser } from 'playwright';
 import ffmpeg from 'fluent-ffmpeg';
 import { v4 as uuidv4 } from 'uuid';
@@ -133,14 +134,30 @@ async function executeRenderJob(id: string) {
       stepMessage: 'Launching Chromium headless rendering engine...',
     });
 
+    // In memory-constrained environments (e.g. Render free tier 512MB RAM),
+    // cap FPS to 30 to prevent Chromium screencast buffer from triggering OOM
+    const isConstrained = Boolean(process.env.RENDER || process.env.NODE_ENV === 'production');
+    const effectiveFps = isConstrained && fps > 30 ? 30 : fps;
+
     browser = await chromium.launch({
       headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--no-zygote',
+        '--single-process',
+        '--disable-extensions',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--mute-audio',
+        '--hide-scrollbars',
         '--disable-web-security',
         '--allow-file-access-from-files',
+        '--disable-features=Translate,OptimizationHints,MediaRouter',
+        '--js-flags=--max-old-space-size=256',
       ],
     });
 
@@ -161,7 +178,7 @@ async function executeRenderJob(id: string) {
       stepMessage: 'Loading HTML animation and external assets...',
     });
 
-    const fileUrl = 'file:///' + htmlPath.replace(/\\/g, '/');
+    const fileUrl = pathToFileURL(htmlPath).href;
     await page.goto(fileUrl, { waitUntil: 'load', timeout: 30000 });
 
     // Wait for fonts & DOM stability
@@ -236,7 +253,7 @@ async function executeRenderJob(id: string) {
     updateJob(id, {
       status: 'capturing',
       progress: 55,
-      stepMessage: `Rendering ${duration}s motion frames at ${fps} FPS...`,
+      stepMessage: `Rendering ${duration}s motion frames at ${effectiveFps} FPS...`,
     });
     
     // Gradual progress counter while rendering frames
@@ -251,8 +268,11 @@ async function executeRenderJob(id: string) {
       });
     }, 500);
 
-    await page.waitForTimeout(durationMs);
-    clearInterval(progressInterval);
+    try {
+      await page.waitForTimeout(durationMs);
+    } finally {
+      clearInterval(progressInterval);
+    }
 
     // Close page to finalize Chromium internal video stream
     await page.close();
@@ -281,8 +301,9 @@ async function executeRenderJob(id: string) {
         .outputOptions([
           '-c:v libx264',
           '-pix_fmt yuv420p',
-          `-r ${fps}`,
-          '-preset fast',
+          `-r ${effectiveFps}`,
+          '-preset veryfast',
+          '-threads 2',
           `-crf ${crf}`,
           '-movflags +faststart',
           `-t ${duration}`,
@@ -300,6 +321,15 @@ async function executeRenderJob(id: string) {
         .on('end', () => resolve())
         .on('error', (err) => reject(err));
     });
+
+    // Cleanup raw WebM file to free disk space immediately
+    if (webmPath && fs.existsSync(/*turbopackIgnore: true*/ webmPath)) {
+      try {
+        fs.unlinkSync(/*turbopackIgnore: true*/ webmPath);
+      } catch {
+        // ignore
+      }
+    }
 
     const stat = fs.statSync(mp4Path);
 
