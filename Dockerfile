@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
 
 # Set build environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
+ENV PORT=7860
 
 # Copy package manifests and install all dependencies (including build tools)
 COPY package.json package-lock.json* ./
@@ -25,13 +25,13 @@ RUN npm run build
 
 # Switch to production environment for runtime
 ENV NODE_ENV=production
-ENV NODE_OPTIONS="--max-old-space-size=256"
 
-# Create temp renders directory with appropriate permissions
-RUN mkdir -p .temp_renders
+# Create temp renders directory with appropriate permissions for non-root users (Hugging Face UID 1000)
+RUN mkdir -p .temp_renders && chmod -R 777 .temp_renders /app
 
+EXPOSE 7860
 EXPOSE 3000
 
-# Launch Next.js production server
-CMD ["sh", "-c", "npx next start -H 0.0.0.0 -p ${PORT:-3000}"]
+# Launch Next.js production server (supports Hugging Face $PORT=7860 and Render $PORT)
+CMD ["sh", "-c", "npx next start -H 0.0.0.0 -p ${PORT:-7860}"]
 

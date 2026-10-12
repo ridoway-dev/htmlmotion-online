@@ -136,7 +136,7 @@ async function executeRenderJob(id: string) {
 
     // In memory-constrained environments (e.g. Render free tier 512MB RAM),
     // cap FPS to 30 to prevent Chromium screencast buffer from triggering OOM
-    const isConstrained = Boolean(process.env.RENDER || process.env.NODE_ENV === 'production');
+    const isConstrained = Boolean(process.env.RENDER);
     const effectiveFps = isConstrained && fps > 30 ? 30 : fps;
 
     browser = await chromium.launch({
