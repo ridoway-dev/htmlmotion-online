@@ -1,7 +1,8 @@
-# HTMLMotion 🎬
+# HTMLMotion — Claude HTML to Video & MP4 Converter 🎬
 
-> **Turn Claude AI HTML & CSS animations into studio-grade MP4/WebM videos and synced Subtitles (.SRT/.VTT) — 100% free, private, and open source.**
+> **The open-source tool to convert Claude AI HTML & CSS animations into studio-grade MP4/WebM videos and synced Subtitles (.SRT/.VTT). Run in-browser or self-host on your PC.**
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Vercel-black.svg?logo=vercel)](https://htmlmotiononline.vercel.app)
 [![MIT License](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16.4-black.svg?logo=next.js)](https://nextjs.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Chromium-red.svg?logo=playwright)](https://playwright.dev/)
@@ -156,6 +157,16 @@ htmlmotion-online/
 ├── package.json
 └── README.md
 ```
+
+---
+
+## 🔍 Use Cases & Supported Keywords
+
+- **Claude HTML to Video**: Export any web animation created by Claude 3.5 Sonnet or Claude Opus as an MP4 or WebM video file.
+- **Claude HTML to MP4**: Transcode browser animations directly into high-bitrate, studio-grade H.264 MP4 videos for YouTube and TikTok.
+- **Claude Motion to Video**: Convert Claude Motion interactive banners into vertical 9:16 reels or landscape 16:9 animations.
+- **HTML/CSS Animation to Video**: Works with CSS keyframe animations, SVGs, Tailwind CSS, Canvas, and WebGL.
+- **Automatic Subtitles Extraction**: Extracts `data-s` timeline cues into synced SubRip `.srt` and WebVTT `.vtt` subtitles.
 
 ---
 

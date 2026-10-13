@@ -15,8 +15,38 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'HTMLMotion — Claude HTML to MP4 Video Converter',
-  description: 'Convert Claude Design & Claude Motion HTML animations into crisp, high-framerate MP4 videos effortlessly with Playwright & FFmpeg.',
+  title: 'HTMLMotion — Claude HTML to Video & MP4 Converter',
+  description: 'Convert Claude AI HTML & CSS animations into studio-grade 1080p/4K MP4 or WebM videos and synced Subtitles (.SRT). 100% free, private, and open source.',
+  keywords: [
+    'claude html to video',
+    'claude html to mp4',
+    'claude animation to video',
+    'claude motion to mp4',
+    'convert claude animation to video',
+    'claude artifacts to video',
+    'html to video converter',
+    'html css animation to mp4',
+    'turn claude animation into video',
+    'claude ai video generator',
+    'htmlmotion',
+  ],
+  authors: [{ name: 'ridoway-dev' }],
+  metadataBase: new URL('https://htmlmotion.online'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'HTMLMotion — Claude HTML to Video & MP4 Converter',
+    description: 'Convert Claude AI HTML & CSS animations into studio-grade MP4 videos & synced subtitles (.SRT).',
+    url: 'https://htmlmotion.online',
+    siteName: 'HTMLMotion',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HTMLMotion — Claude HTML to Video & MP4 Converter',
+    description: 'Convert Claude AI HTML & CSS animations into studio-grade MP4 videos & synced subtitles (.SRT).',
+  },
 };
 
 export default function RootLayout({
