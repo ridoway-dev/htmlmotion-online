@@ -1,0 +1,17 @@
+{
+  "services": {
+    "htmlmotion-online": {
+      "root": ".",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "htmlmotion-online"
+      }
+    }
+  ]
+}

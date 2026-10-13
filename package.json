@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup": "npx playwright install chromium"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
